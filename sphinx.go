@@ -195,7 +195,7 @@ type Options struct {
 
 type Client struct {
 	*Options
-	conn *net.TcpConn
+	conn *net.TCPConn
 
 	warning   string
 	err       error
@@ -339,7 +339,7 @@ func (sc *Client) SetConnectTimeout(timeout int) *Client {
 
 // millisecond, not nanosecond.
 func (sc *Client) SetConnectDuration(duration int) *Client {
-	if timeout < 0 {
+	if duration < 0 {
 		sc.err = fmt.Errorf("SetConnectDuration > connect duration must not be negative: %d", timeout)
 		return sc
 	}
@@ -1222,12 +1222,7 @@ func (sc *Client) connect() (err error) {
 	duraion := time.Duration(sc.Duration) * time.Millisecond
 
 	// Try unix socket first.
-	if sc.Socket != "" {
-		if sc.conn, err = net.DialTimeout("unix", sc.Socket, timeout); err != nil {
-			sc.connerror = true
-			return fmt.Errorf("connect() net.DialTimeout(%d ms) > %v", sc.Timeout, err)
-		}
-	} else if sc.Port > 0 {
+	if sc.Port > 0 && sc.Host != "" {
 
 		tcpAddr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%s:%d", sc.Host, sc.Port))
 		if err != nil {
