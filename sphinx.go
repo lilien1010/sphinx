@@ -1340,9 +1340,9 @@ func (sc *Client) doRequest(command int, version int, req []byte) (res []byte, e
 	}
 
 	header := make([]byte, 8)
-	if i, err := io.ReadFull(sc.conn, header); ,err != nil {
+	if i, err := io.ReadFull(sc.conn, header); err != nil {
 		sc.connerror = true
-		return nil, fmt.Errorf("doRequest > just read %d bytes into header,err=%s", i,err.Error())
+		return nil, fmt.Errorf("doRequest > just read %d bytes into header,err=%s", i, err.Error())
 	}
 
 	status := binary.BigEndian.Uint16(header[0:2])
@@ -1355,7 +1355,7 @@ func (sc *Client) doRequest(command int, version int, req []byte) (res []byte, e
 	res = make([]byte, size)
 	if i, err := io.ReadFull(sc.conn, res); err != nil {
 		sc.connerror = true
-		return nil, fmt.Errorf("doRequest > just read %d bytes into res (size=%d).err=%s", i, size,err.Error())
+		return nil, fmt.Errorf("doRequest > just read %d bytes into res (size=%d).err=%s", i, size, err.Error())
 	}
 
 	switch status {
