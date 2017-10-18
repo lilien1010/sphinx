@@ -195,6 +195,7 @@ type Options struct {
 
 type Client struct {
 	*Options
+	conn *net.TcpConn
 
 	warning   string
 	err       error
