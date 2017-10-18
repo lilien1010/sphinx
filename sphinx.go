@@ -164,6 +164,7 @@ type Options struct {
 	RetryCount    int
 	RetryDelay    int
 	Timeout       int
+	Duration      int // add tcp4 keepalive
 	Offset        int // how many records to seek from result-set start
 	Limit         int // how many records to return from result-set starting at offset (default is 20)
 	MaxMatches    int // max matches to retrieve
@@ -194,7 +195,6 @@ type Options struct {
 
 type Client struct {
 	*Options
-	conn net.Conn
 
 	warning   string
 	err       error
@@ -207,8 +207,6 @@ type Client struct {
 	indexWeights map[string]int
 	fieldWeights map[string]int
 	overrides    map[string]override
-
-	duration time.Duration //keepalive duration
 
 	// For sphinxql
 	DB  *sql.DB       // Capitalize, so that can "defer sc.Db.Close()"
@@ -227,6 +225,7 @@ var DefaultOptions = &Options{
 	GroupSort:  "@group desc",
 	MaxMatches: 1000,
 	Timeout:    1000,
+	Duration:   0,
 	RankMode:   SPH_RANK_PROXIMITY_BM25,
 	Select:     "*",
 }
@@ -334,6 +333,17 @@ func (sc *Client) SetConnectTimeout(timeout int) *Client {
 	}
 
 	sc.Timeout = timeout
+	return sc
+}
+
+// millisecond, not nanosecond.
+func (sc *Client) SetConnectDuration(duration int) *Client {
+	if timeout < 0 {
+		sc.err = fmt.Errorf("SetConnectDuration > connect duration must not be negative: %d", timeout)
+		return sc
+	}
+
+	sc.Duration = duration
 	return sc
 }
 
@@ -1208,6 +1218,7 @@ func (sc *Client) connect() (err error) {
 	sc.connerror = false
 
 	timeout := time.Duration(sc.Timeout) * time.Millisecond
+	duraion := time.Duration(sc.Duration) * time.Millisecond
 
 	// Try unix socket first.
 	if sc.Socket != "" {
@@ -1216,10 +1227,31 @@ func (sc *Client) connect() (err error) {
 			return fmt.Errorf("connect() net.DialTimeout(%d ms) > %v", sc.Timeout, err)
 		}
 	} else if sc.Port > 0 {
-		if sc.conn, err = net.DialTimeout("tcp", fmt.Sprintf("%s:%d", sc.Host, sc.Port), timeout); err != nil {
-			sc.connerror = true
-			return fmt.Errorf("connect() net.DialTimeout(%d ms) > %v", sc.Timeout, err)
+
+		tcpAddr, err := net.ResolveTCPAddr("tcp4", fmt.Sprintf("%s:%d", sc.Host, sc.Port))
+		if err != nil {
+			return err
 		}
+
+		sc.conn, err = net.DialTCP("tcp4", nil, tcpAddr)
+		if err != nil {
+			return err
+		}
+
+		if duraion != 0 {
+
+			err = sc.conn.SetKeepAlive(true)
+			if err != nil {
+				return err
+			}
+
+			err = sc.conn.SetKeepAlivePeriod(duraion)
+			if err != nil {
+				return err
+			}
+
+		}
+
 	} else {
 		return fmt.Errorf("connect() > No valid socket or port!\n%Client: #v", sc)
 	}
@@ -1228,10 +1260,6 @@ func (sc *Client) connect() (err error) {
 	if err = sc.conn.SetDeadline(time.Now().Add(timeout)); err != nil {
 		sc.connerror = true
 		return fmt.Errorf("connect() conn.SetDeadline() > %v", err)
-	}
-
-	if sc.duration != 0 {
-		sc.SetKeepAlive(duration)
 	}
 
 	header := make([]byte, 4)
@@ -1258,12 +1286,11 @@ func (sc *Client) connect() (err error) {
 	return
 }
 
-func (sc *Client) Open(duration time.Duration) (err error) {
+func (sc *Client) Open() (err error) {
 	if err = sc.connect(); err != nil {
 		return fmt.Errorf("Open > %v", err)
 	}
 
-	sc.duration = duration
 	var req []byte
 	req = writeInt16ToBytes(req, SEARCHD_COMMAND_PERSIST)
 	req = writeInt16ToBytes(req, 0) // command version
@@ -1278,24 +1305,6 @@ func (sc *Client) Open(duration time.Duration) (err error) {
 	}
 
 	return nil
-}
-
-func (sc *Client) SetKeepAlive(duration time.Duration) error {
-
-	if sc.conn == nil {
-		return errors.New("not connected")
-	}
-
-	err = sc.conn.SetKeepAlive(true)
-	if err != nil {
-		return err
-	}
-
-	err = sc.conn.SetKeepAlivePeriod(duration)
-	if err != nil {
-		return err
-	}
-
 }
 
 func (sc *Client) Close() error {
