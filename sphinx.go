@@ -340,7 +340,7 @@ func (sc *Client) SetConnectTimeout(timeout int) *Client {
 // millisecond, not nanosecond.
 func (sc *Client) SetConnectDuration(duration int) *Client {
 	if duration < 0 {
-		sc.err = fmt.Errorf("SetConnectDuration > connect duration must not be negative: %d", timeout)
+		sc.err = fmt.Errorf("SetConnectDuration > connect duration must not be negative: %d", duration)
 		return sc
 	}
 
