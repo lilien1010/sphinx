@@ -7,6 +7,9 @@ The sphinx(full text search server) client package for the Go programming langua
 
 `go get github.com/yunge/sphinx`
 
+## IMPORTANT ##
+accroding to go-mysql driver document,sphinxsql need Sphinx 2.2.3+
+`MySQL (4.1+), MariaDB, Percona Server, Google CloudSQL or Sphinx (2.2.3+)`
 
 ## Testing
 
