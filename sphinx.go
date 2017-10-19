@@ -1333,7 +1333,7 @@ func (sc *Client) doRequest(command int, version int, req []byte) (res []byte, e
 	cmdVerLen = writeInt16ToBytes(cmdVerLen, version)
 	cmdVerLen = writeInt32ToBytes(cmdVerLen, len(req))
 	req = append(cmdVerLen, req...)
-	writeSize, err = sc.conn.Write(req)
+	writeSize, err := sc.conn.Write(req)
 	if err != nil {
 		sc.connerror = true
 		return nil, fmt.Errorf("conn.Write error: %v", err)

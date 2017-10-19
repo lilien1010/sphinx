@@ -55,7 +55,7 @@ func (sc *Client) GetDb(timeout int, maxOpen int, maxIdle int) (err error) {
 		addr = "tcp(" + sc.Host + ":" + strconv.Itoa(sc.SqlPort) + ")"
 	}
 
-	if sc.DB, err = sql.Open("mysql", addr+"/?charset=utf8&timeout="+timeout+"s"); err != nil {
+	if sc.DB, err = sql.Open("mysql", addr+"/?charset=utf8&timeout="+strconv.Itoa(timeout)+"s"); err != nil {
 		return err
 	}
 
