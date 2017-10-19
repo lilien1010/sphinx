@@ -92,7 +92,7 @@ func (sc *Client) Init(obj interface{}) (err error) {
 func (sc *Client) Execute(sqlStr string) (result sql.Result, err error) {
 	// Init sql.DB
 	if sc.DB == nil {
-		if err = sc.GetDb(); err != nil {
+		if err = sc.GetDb(10, 20, 2); err != nil {
 			return nil, fmt.Errorf("Execute> %v", err)
 		}
 	}
