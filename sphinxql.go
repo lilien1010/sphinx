@@ -46,7 +46,7 @@ func (sc *Client) SetWhere(where string) *Client {
 	return sc
 }
 
-func (sc *Client) GetDb() (err error) {
+func (sc *Client) GetDb(timeout int, maxOpen int, maxIdle int) (err error) {
 	var addr string
 	if sc.SqlSocket != "" {
 		addr = "unix(" + sc.SqlSocket + ")"
@@ -55,14 +55,14 @@ func (sc *Client) GetDb() (err error) {
 		addr = "tcp(" + sc.Host + ":" + strconv.Itoa(sc.SqlPort) + ")"
 	}
 
-	if sc.DB, err = sql.Open("mysql", addr+"/"); err != nil {
+	if sc.DB, err = sql.Open("mysql", addr+"/?charset=utf8&timeout="+timeout+"s"); err != nil {
 		return err
 	}
-	
+
 	// FIXME
-	// The returned DB is safe for concurrent use by multiple goroutines and maintains its own pool of idle connections. 
-	//sc.DB.SetMaxOpenConns(100)
-	sc.DB.SetMaxIdleConns(10)
+	// The returned DB is safe for concurrent use by multiple goroutines and maintains its own pool of idle connections.
+	sc.DB.SetMaxOpenConns(maxOpen)
+	sc.DB.SetMaxIdleConns(maxIdle)
 
 	return
 }
@@ -97,7 +97,7 @@ func (sc *Client) Execute(sqlStr string) (result sql.Result, err error) {
 		}
 	}
 	// It is rare to Close a DB, as the DB handle is meant to be
-        // long-lived and shared between many goroutines.
+	// long-lived and shared between many goroutines.
 	//defer sc.DB.Close()
 	return sc.DB.Exec(sqlStr)
 }

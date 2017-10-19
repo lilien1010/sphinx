@@ -1333,7 +1333,7 @@ func (sc *Client) doRequest(command int, version int, req []byte) (res []byte, e
 	cmdVerLen = writeInt16ToBytes(cmdVerLen, version)
 	cmdVerLen = writeInt32ToBytes(cmdVerLen, len(req))
 	req = append(cmdVerLen, req...)
-	_, err = sc.conn.Write(req)
+	writeSize, err = sc.conn.Write(req)
 	if err != nil {
 		sc.connerror = true
 		return nil, fmt.Errorf("conn.Write error: %v", err)
@@ -1342,7 +1342,7 @@ func (sc *Client) doRequest(command int, version int, req []byte) (res []byte, e
 	header := make([]byte, 8)
 	if i, err := io.ReadFull(sc.conn, header); err != nil {
 		sc.connerror = true
-		return nil, fmt.Errorf("doRequest > just read %d bytes into header,err=%s", i, err.Error())
+		return nil, fmt.Errorf("doRequest > just read %d bytes into header,err=%s,writeSize=%d", i, err.Error(), writeSize)
 	}
 
 	status := binary.BigEndian.Uint16(header[0:2])
